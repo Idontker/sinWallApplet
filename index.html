@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laserpointer Animation</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+        flex-direction: column;
+        gap: 2rem;
+      }
+      .container {
+        position: relative;
+        width: 800px;
+        height: 400px;
+        background-color: white;
+        border: 2px solid black;
+      }
+      .laser-pointer {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-color: red;
+        border-radius: 50%;
+      }
+      .wall {
+        position: absolute;
+        top: 0;
+        right: 300px;
+        width: 10px;
+        height: 100%;
+        background-color: gray;
+      }
+      .meeting-point {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background-color: green;
+        border-radius: 50%;
+        right: 310px;
+      }
+      #animationCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      .slider-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 20px;
+      }
+      #speedSlider {
+        width: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <canvas id="canvas"></canvas>
+      <div class="laser-pointer" id="laserPointer"></div>
+      <div class="wall"></div>
+      <div class="meeting-point" id="meetingPoint"></div>
+    </div>
+    <div class="slider-container">
+      <label for="speedSlider">Geschwindigkeit: </label>
+      <input
+        type="range"
+        id="speedSlider"
+        min="0"
+        max="15"
+        value="2"
+        step="0.5" />
+      <span id="speedValue">2</span>
+    </div>
+
+    <script>
+      let speed = 2;
+      let traveled = 0;
+      let lastTimestamp = new Date().getTime();
+      let trail = [];
+
+      document
+        .getElementById("speedSlider")
+        .addEventListener("input", function (event) {
+          speed = event.target.value;
+          document.getElementById("speedValue").textContent = speed;
+        });
+
+      function updateLaserPointer() {
+        const container = document.querySelector(".container");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const laserPointer = document.getElementById("laserPointer");
+        const meetingPoint = document.getElementById("meetingPoint");
+
+        const radius = 100;
+        const centerX = container.offsetWidth / 4;
+        const centerY = container.offsetHeight / 2;
+        const wallX = container.offsetWidth - 305;
+
+        const now = new Date().getTime();
+        const timeElapsed = (now - lastTimestamp) / 1000;
+        lastTimestamp = now;
+        const angle = timeElapsed * speed;
+        traveled += angle;
+
+        const pointerX = centerX - radius * Math.cos(traveled);
+        const pointerY = centerY + radius * Math.sin(traveled);
+
+        laserPointer.style.left = `${pointerX - 10}px`;
+        laserPointer.style.top = `${pointerY - 10}px`;
+
+        const meetingPointY = pointerY;
+        meetingPoint.style.top = `${meetingPointY - 5}px`;
+
+        // Füge die aktuelle Position des Treffpunkts zur Spur hinzu
+        trail.push({ x: wallX, y: meetingPointY });
+
+        const travel_distance = 100;
+        trail.forEach((ele) => {
+          ele.x += timeElapsed * travel_distance;
+        });
+
+        // Anpassung der Canvas-Größe
+        canvas.width = container.offsetWidth;
+        canvas.height = container.offsetHeight;
+        // Begrenze die Länge der Spur
+        trail = trail.filter((item) => item.x < canvas.width);
+
+        // Zeichne die gestrichelte Linie
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(pointerX, pointerY);
+        ctx.lineTo(wallX, meetingPointY);
+        ctx.strokeStyle = "red";
+        ctx.stroke();
+
+        // Zeichne die Spur
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        for (let i = 0; i < trail.length - 1; i++) {
+          ctx.moveTo(trail[i].x, trail[i].y);
+          ctx.lineTo(trail[i + 1].x, trail[i + 1].y);
+        }
+        ctx.strokeStyle = "rgba(50, 200, 50, 1)";
+        ctx.stroke();
+      }
+
+      function animate() {
+        updateLaserPointer();
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    </script>
+  </body>
+</html>
